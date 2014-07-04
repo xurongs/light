@@ -136,10 +136,12 @@ function create_button(lights){
 
     var $parent = $("#main");
     for (var i = 0; i < lights.length; i++) {
-        name = "light" + i;
-        var btn = $("<button id='" + name + "' onclick='light_click(" + i + ")'>" + lights[i] + "</button>");
-        $parent.append(btn);
-
+        name = lights[i];
+        if (name.length > 0) {
+            light_id = "light" + i;
+            var btn = $("<button id='" + light_id + "' onclick='light_click(" + i + ")'>" + name + "</button>");
+            $parent.append(btn);
+        }
         light_state[i] = 0;
     };
 
