@@ -1,5 +1,5 @@
 <html><head>
-<meta http-equiv="content-type" content="text/html; charset=gbk">
+<meta http-equiv="content-type" content="text/html; charset=">
 <script type="text/javascript" src="/jscript/jquery-1.7.1.min.js"></script>
 <script type="text/javascript" src="/jscript/light.js"></script>
 
@@ -10,16 +10,20 @@
 
 
 <script>
-var lights = new Array(
-	"0", "1", "2", "yi chu", "zhu wo", "5", "6", 
-	"7", "8", "9", "10", "11", "12", "13", 
-	"14", "15", "16", "17", "18", "19", "20")
-create_button(lights);
+	var lights = new Array(
+		"次卧顶灯", "书房顶灯", "次卧筒灯",
+		"主卧衣橱", "主卧顶灯", "主卫镜前",
+		"主卫顶灯", "主卧过道", "主卧筒灯",
+		"", "", "",
+		"客卫顶灯", "客厅门灯", "餐厅吊灯",
+		"客厅筒灯", "客卫镜前", "厨房顶灯",
+		"客厅顶灯", "", "");
+	create_button(lights);
 
-$(document).ready(run);
+	$(document).ready(run);
 
-function run(){
-    connect_to_erlang(location.hostname, location.port, "light_ctrl");
-}
+	function run(){
+		connect_to_erlang(location.hostname, location.port, "light_ctrl");
+	}
 </script>
 </body></html>
