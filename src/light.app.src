@@ -2,7 +2,7 @@
  [
   {description, "The Light Contorllor"},
   {vsn, "1"},
-  {registered, [light, light_server]},
+  {registered, [light]},
   {applications, [
                   kernel,
                   stdlib

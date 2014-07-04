@@ -27,10 +27,9 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-	light_server:start_link(),
+	io:format("light_server pid=~w.~n", [self()]),
 	Procs = [
-		{light, {light, start_link, []},
-			permanent, 5000, worker, [light]}
+		?CHILD(light, worker)
 		],
     {ok, { {one_for_one, 5, 10}, Procs} }.
 

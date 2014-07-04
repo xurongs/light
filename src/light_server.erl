@@ -1,13 +1,12 @@
 -module(light_server).
--export([start_link/0]).
+-export([start/0]).
 
 %% This demo assumes that all your code
 %% the code paths to ezwebframe and simple_demo are correct
 
-start_link() ->
-    io:format("a server of light....~n"),
+start() ->
+    application:start(light),
     Port = 1456,
-    io:format("Load the page http://localhost:~p/ in your browser~n",[Port]),
     ezwebframe:start_link(fun dispatch/1, Port).
 
 %% dispatch maps names in the HTML onto fixed paths 
