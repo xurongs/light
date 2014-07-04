@@ -6,7 +6,7 @@
 
 start() ->
     application:start(light),
-    Port = 1456,
+    Port = 80,
     ezwebframe:start_link(fun dispatch/1, Port).
 
 %% dispatch maps names in the HTML onto fixed paths 
