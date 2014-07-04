@@ -1,8 +1,8 @@
 {application, light,
  [
-  {description, ""},
+  {description, "The Light Contorllor"},
   {vsn, "1"},
-  {registered, []},
+  {registered, [light, light_server]},
   {applications, [
                   kernel,
                   stdlib

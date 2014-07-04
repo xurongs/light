@@ -3,7 +3,7 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0]).
+-export([start/0, start_link/0]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -14,6 +14,10 @@
 %% ===================================================================
 %% API functions
 %% ===================================================================
+start() ->
+	spawn(fun() ->
+	    	supervisor:start_link({local, ?MODULE}, ?MODULE, [])
+		end).
 
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
@@ -23,5 +27,10 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    {ok, { {one_for_one, 5, 10}, []} }.
+	light_server:start_link(),
+	Procs = [
+		{light, {light, start_link, []},
+			permanent, 5000, worker, [light]}
+		],
+    {ok, { {one_for_one, 5, 10}, Procs} }.
 

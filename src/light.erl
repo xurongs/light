@@ -34,6 +34,7 @@ status() ->
 init([]) ->
 	process_flag(trap_exit, true),
 	Uart = open_port({spawn, "./serial_forward"}, [stream]),
+	link(Uart),
 	{{light, NewLights}, {key, NewKeys}} = init_data(Uart),
 	State = {Uart, NewKeys, NewLights, []},
 	{ok, State}.
@@ -79,7 +80,9 @@ handle_info(_Info, State) -> {noreply, State}.
 %%------------------------------------------------------------------------------
 %% terminate
 %%------------------------------------------------------------------------------
-terminate(_Reason, _State) -> ok.
+terminate(Reason, _State) ->
+	io:format("~w~n", [Reason]),
+	ok.
 
 %%------------------------------------------------------------------------------
 %% code_change

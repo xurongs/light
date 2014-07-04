@@ -10,12 +10,12 @@ loop(Browser) ->
 	receive
 	{Browser, {struct, [{on, LightIdx}]}} ->
 		io:format("on ~w~n", [LightIdx]),
-		light:turn_on(4),
+		light:turn_on(LightIdx),
 		send_status(Browser),
 		loop(Browser);
 	{Browser, {struct, [{off, LightIdx}]}} ->
 		io:format("off ~w~n", [LightIdx]),
-		light:turn_off(4),
+		light:turn_off(LightIdx),
 		send_status(Browser),
 		loop(Browser);
 	{Browser, {struct, Msg}} ->
