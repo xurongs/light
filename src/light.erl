@@ -2,9 +2,11 @@
 -behaviour(gen_server).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([start_link/0, start/0, stop/0]).
--export([turn_on/1, turn_off/1, status/0]).
+-export([turn_on/1, turn_off/1, status/0, register/0]).
 
 -define(SERVER, ?MODULE).
+
+-record(state, {uart, key, light, task = [], client = []}).
 
 
 %%------------------------------------------------------------------------------
@@ -28,6 +30,9 @@ turn_off(Number) ->
 status() ->
 	gen_server:call(?MODULE, {status}).	
 
+register() ->
+	gen_server:call(?MODULE, {register}).	
+
 %%------------------------------------------------------------------------------
 %% init
 %%------------------------------------------------------------------------------
@@ -36,24 +41,35 @@ init([]) ->
 	Uart = open_port({spawn, "./serial_forward"}, [stream]),
 	link(Uart),
 	{{light, NewLights}, {key, NewKeys}} = init_data(Uart),
-	State = {Uart, NewKeys, NewLights, []},
+	State = #state{uart = Uart, key = NewKeys, light = NewLights},
 	{ok, State}.
 
 %%------------------------------------------------------------------------------
 %% handle_call
 %%------------------------------------------------------------------------------
-handle_call({on, Number}, From, {Uart, Keys, Lights, Tasks}) ->
+handle_call({register}, From, State) ->
+	#state{client = Clients} = State,
+	case lists:keymember(From, 1, Clients) of
+		false -> NewClients = [{From} | Clients];
+		true -> NewClients = Clients
+	end,
+	{reply, {ok, {register, From}}, State#state{client = NewClients}, 1000};
+
+handle_call({on, Number}, From, State) ->
+	#state{uart = Uart, task = Tasks} = State,
 	Uart ! {self(), {command, [2, Number, 255]}},
 	NewTasks = [{{on, Number}, From} | Tasks],
-	{noreply, {Uart, Keys, Lights, NewTasks}, 1000};
+	{noreply, State#state{task = NewTasks}, 1000};
 
-handle_call({off, Number}, From, {Uart, Keys, Lights, Tasks}) ->
+handle_call({off, Number}, From, State) ->
+	#state{uart = Uart, task = Tasks} = State,
 	Uart ! {self(), {command, [3, Number, 255]}},
 	NewTasks = [{{off, Number}, From} | Tasks],
-	{noreply, {Uart, Keys, Lights, NewTasks}, 1000};
+	{noreply, State#state{task = NewTasks}, 1000};
 
-handle_call({status}, _, {Uart, Keys, Lights, Tasks}) ->
-	{reply, {ok, {status, {Lights, Keys}}}, {Uart, Keys, Lights, Tasks}, 1000};
+handle_call({status}, _, State) ->
+	#state{light = Lights, key = Keys} = State,
+	{reply, {ok, {status, {Lights, Keys}}}, State, 1000};
 
 handle_call(stop, _From, State) -> {stop, normal, stopped, State}.
 
@@ -65,15 +81,17 @@ handle_cast(_Msg, State) -> {noreply, State}.
 %%------------------------------------------------------------------------------
 %% handle_info
 %%------------------------------------------------------------------------------
-handle_info({Uart, {data, Data}}, {Uart, _Keys, _Lights, Tasks}) ->
+handle_info({_Uart, {data, Data}}, State) ->
+	#state{task = Tasks} = State,
 	Status = {{light, NewLights}, {key, NewKeys}} = get_status(Data),
 	NewTasks = ack_task(NewLights, Tasks),
 	display_status(Status),
-	{noreply, {Uart, NewKeys, NewLights, NewTasks}};
+	{noreply, State#state{key = NewKeys, light = NewLights, task = NewTasks}};
 
-handle_info(timeout, {Uart, Keys, Lights, Tasks}) ->
+handle_info(timeout, State) ->
+	#state{task = Tasks} = State,
 	NewTasks = clear_task(Tasks),
-	{noreply, {Uart, Keys, Lights, NewTasks}};
+	{noreply, State#state{task = NewTasks}};
 
 handle_info(_Info, State) -> {noreply, State}.
 
