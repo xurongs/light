@@ -49,8 +49,11 @@ init([]) ->
 %%------------------------------------------------------------------------------
 handle_call({register}, From, State) ->
 	#state{client = Clients} = State,
-	case lists:keymember(From, 1, Clients) of
-		false -> NewClients = [{From} | Clients];
+	{Pid, _} = From,
+	case lists:keymember(Pid, 1, Clients) of
+		false ->
+			erlang:monitor(process, Pid),
+			NewClients = [From | Clients];
 		true -> NewClients = Clients
 	end,
 	{reply, {ok, {register, From}}, State#state{client = NewClients}, 1000};
@@ -87,6 +90,11 @@ handle_info({_Uart, {data, Data}}, State) ->
 	NewTasks = ack_task(NewLights, Tasks),
 	display_status(Status),
 	{noreply, State#state{key = NewKeys, light = NewLights, task = NewTasks}};
+
+handle_info({'DOWN', _MonitorRef, process, Pid, _Info}, State) ->
+	#state{client = Clients} = State,
+	NewClients = lists:keydelete(Pid, 1, Clients),
+	{noreply, State#state{client = NewClients}};
 
 handle_info(timeout, State) ->
 	#state{task = Tasks} = State,

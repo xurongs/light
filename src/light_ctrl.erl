@@ -3,6 +3,7 @@
 %%% NOTE: lines with three %%% show code when frames are introduced
 
 start(Browser) ->
+	light:register(),
 	send_status(Browser),
 	loop(Browser).
 
