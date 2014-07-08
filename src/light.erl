@@ -85,9 +85,10 @@ handle_cast(_Msg, State) -> {noreply, State}.
 %% handle_info
 %%------------------------------------------------------------------------------
 handle_info({_Uart, {data, Data}}, State) ->
-	#state{task = Tasks} = State,
+	#state{task = Tasks, client = Clients} = State,
 	Status = {{light, NewLights}, {key, NewKeys}} = get_status(Data),
 	NewTasks = ack_task(NewLights, Tasks),
+	notice_clients(Status, Clients),
 	display_status(Status),
 	{noreply, State#state{key = NewKeys, light = NewLights, task = NewTasks}};
 
@@ -145,6 +146,9 @@ ack_task(Lights, [{{OnOff, Number}, From} = H | Cmds]) ->
 	end;
 ack_task(_, []) ->
 	[].
+
+notice_clients(Status, Clients) ->
+	lists:foreach(fun({Pid, _}) -> Pid ! Status end, Clients).
 
 clear_task(Tasks) ->
 	lists:foreach(fun({{OnOff, Number}, From}) -> gen_server:reply(From, {timeout, {OnOff, Number}}) end, Tasks),

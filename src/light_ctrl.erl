@@ -21,6 +21,9 @@ loop(Browser) ->
 		loop(Browser);
 	{Browser, {struct, Msg}} ->
 		os:format("~w~n", [Msg]),
+		loop(Browser);
+	{{light, _Lights}, {key, _Keys}} ->
+		send_status(Browser),
 		loop(Browser)
 	end.
 
