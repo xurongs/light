@@ -8,14 +8,27 @@
 
 
 <script>
-	var lights = new Array(
-		"次卧顶灯", "书房顶灯", "次卧筒灯",
-		"主卧衣橱", "主卧顶灯", "主卫镜前",
-		"主卫顶灯", "主卧过道", "主卧筒灯",
-		"", "", "",
-		"客卫顶灯", "客厅门灯", "餐厅吊灯",
-		"客厅筒灯", "客卫镜前", "厨房顶灯",
-		"客厅顶灯", "", "");
+	var lights = [
+		{"text":"主卧顶灯", "index":4},
+		{"text":"主卧筒灯", "index":8},
+		{"text":"主卧过道", "index":7},
+		{"text":"主卧衣橱", "index":3},
+		{"text":"主卫顶灯", "index":6},
+		{"text":"主卫镜前", "index":5},
+		{"index":-1},
+		{"text":"次卧顶灯", "index":0},
+		{"text":"次卧筒灯", "index":2},
+		{"text":"书房顶灯", "index":1},
+		{"index":-1},
+		{"text":"厨房顶灯", "index":17},
+		{"text":"客卫顶灯", "index":12},
+		{"text":"客卫镜前", "index":16},
+		{"index":-1},
+		{"text":"客厅顶灯", "index":18},
+		{"text":"客厅门灯", "index":13},
+		{"text":"客厅筒灯", "index":15},
+		{"text":"餐厅吊灯", "index":14},
+		{"index":-1}];
 	create_button(lights);
 
 	$(document).ready(run);

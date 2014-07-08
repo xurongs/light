@@ -101,7 +101,7 @@ function read_entry(x, id){
     
 // browser commands
 
-var light_state;
+var light_state = {};
 
 function light_click(index){
     $("#light" + index).css("color", "gray");
@@ -113,36 +113,39 @@ function light_click(index){
 }
 
 function set_light_state(states){
-    for (var i = 0; i < states.length; i++) {
+    for (var index in states) {
         state = "silver";
-        if (states[i]) {
+        if (states[index]) {
             state = "black"
         }
-        $("#light" + i).css("color", state);
+        $("#light" + index).css("color", state);
     }
 }
 
 function cmd_state(o){
     light = o.state;
-    for (var i = 0; i < light_state.length; i++) {
-        light_state[i] = ((light >> i) & 1);
+    for (var index in light_state) {
+        index = eval(index);
+        light_state[index] = ((light >> index) & 1);
     }
 
     set_light_state(light_state);
 }
 
 function create_button(lights){
-    light_state = new Array(lights.length);
-
     var $parent = $("#main");
     for (var i = 0; i < lights.length; i++) {
-        name = lights[i];
-        if (name.length > 0) {
-            light_id = "light" + i;
-            var btn = $("<button id='" + light_id + "' onclick='light_click(" + i + ")'>" + name + "</button>");
+        light_id = lights[i].index;
+        if (light_id >= 0) {
+            name = lights[i].text;
+            var btn = $("<button id='" + "light" + light_id + "' onclick='light_click(" + lights[i].index + ")'>" + name + "</button>");
             $parent.append(btn);
+            light_state[light_id] = 0;
         }
-        light_state[i] = 0;
+        else {
+            var br = $('<br />');
+            $parent.append(br);
+        }
     };
 
     set_light_state(light_state);
