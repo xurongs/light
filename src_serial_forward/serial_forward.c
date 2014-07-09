@@ -33,7 +33,7 @@ void forward_once(int from, int to)
 		{
 			write(to, buff, bytes);
 			fsync(to);
-			// fprintf(stderr, "%d -> %d : %d bytes\n", from, to, bytes);
+			fprintf(stderr, "%d -> %d : %d bytes\n", from, to, bytes);
 		}
 		else
 		{
@@ -157,12 +157,13 @@ void forward_serial()
 	}
 	else
 	{
-		fprintf(stdout, "open uart failed.%d\n", errno);
+		fprintf(stderr, "open uart failed.%d\n", errno);
 	}
 }
 
 int main()
 {
+	fprintf(stderr, "Start serial forward...\n");
 	forward_serial();
 	return 0;
 }

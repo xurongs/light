@@ -125,10 +125,13 @@ get_status([1, L0, L1, L2, K0, K1, K2, 16#ff]) ->
 	{{light, merge_value(L0, L1, L2)}, {key, merge_value(K0, K1, K2)}}.
 	
 init_data(Uart) ->
+	Uart ! {self(), {command, [16#ff, 16#ff]}},
 	Uart ! {self(), {command, [1, 16#ff]}},
 	receive
 		{Uart, {data, Data}} ->
 			get_status(Data)
+	after 5000 ->
+		timeout
 	end.
 
 on_off(OnOff) ->
