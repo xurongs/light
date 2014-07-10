@@ -120,17 +120,26 @@ void set_serial(int fd)
 	cfsetispeed(&opt, B9600);
 	cfsetospeed(&opt, B9600);
 	
-	opt.c_cflag &= ~PARENB; 
-	
+	opt.c_cflag &= ~PARENB;
+	opt.c_iflag &= ~INPCK; 
+
 	/* 1 stop bit */
-	opt.c_cflag &= ~CSTOPB; 
-	
+	opt.c_cflag &= ~CSTOPB;
+
 	/* 8 bit*/
 	opt.c_cflag &= ~CSIZE; 
 	opt.c_cflag |= CS8;
-	
+
+	opt.c_cflag |= (CLOCAL | CREAD);
+
 	opt.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+
 	opt.c_oflag &= ~OPOST;
+	opt.c_oflag &= ~(ONLCR | OCRNL);
+
+	opt.c_iflag &= ~(ICRNL | INLCR);
+	opt.c_iflag &= ~(IXON | IXOFF | IXANY);
+
 	opt.c_cc[VTIME] = 10;
 	opt.c_cc[VMIN] = 9;
 
