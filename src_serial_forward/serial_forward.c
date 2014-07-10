@@ -33,7 +33,7 @@ void forward_once(int from, int to)
 		{
 			write(to, buff, bytes);
 			fsync(to);
-			fprintf(stderr, "%d -> %d : %d bytes\n", from, to, bytes);
+			// fprintf(stderr, "%d -> %d : %d bytes\n", from, to, bytes);
 		}
 		else
 		{
