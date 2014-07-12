@@ -5,35 +5,45 @@
 <script type="text/javascript" src="/jscript/light.js"></script>
 
 </head><body>
-    <div id="main"></div>
+    <div id="main" style="width:100%;height:100%;"><canvas id="room" style="width:100%;height:100%;" /></div>
 
 
 <script>
+	var rooms = [
+		{"x":13, "y":0,  "width":23, "height":21},
+		{"x":36, "y":0,  "width":28, "height":21},
+		{"x":0,  "y":21, "width":50, "height":69},
+		{"x":50, "y":21, "width":34, "height":32},
+		{"x":50, "y":53, "width":34, "height":43},
+		{"x":0,  "y":90, "width":36, "height":49}
+		];
 	var lights = [
-		{"text":"客厅门灯", "index":13},
-		{"text":"客厅顶灯", "index":18},
-		{"text":"客厅筒灯", "index":15},
-		{"text":"餐厅吊灯", "index":14},
-		{"index":-1},
-		{"text":"主卧顶灯", "index":4},
-		{"text":"主卧筒灯", "index":8},
-		{"text":"主卧过道", "index":7},
-		{"text":"主卧衣橱", "index":3},
-		{"index":-1},
-		{"text":"主卫顶灯", "index":6},
-		{"text":"主卫镜前", "index":5},
-		{"index":-1},
-		{"text":"客卫顶灯", "index":12},
-		{"text":"客卫镜前", "index":16},
-		{"index":-1},
-		{"text":"次卧顶灯", "index":0},
-		{"text":"次卧筒灯", "index":2},
-		{"index":-1},
-		{"text":"厨房顶灯", "index":17},
-		{"index":-1},
-		{"text":"书房顶灯", "index":1},
-		{"index":-1}];
-	create_button(lights);
+		{"text":"客厅门灯", "index":13, "pos":{"x":3,  "y":25}},
+		{"text":"客厅顶灯", "index":18, "pos":{"x":25, "y":70}},
+		{"text":"客厅筒灯", "index":15, "pos":{"x":45, "y":47}},
+		{"text":"餐厅吊灯", "index":14, "pos":{"x":38, "y":30}},
+		{"text":"主卧顶灯", "index":4,  "pos":{"x":3,  "y":120}},
+		{"text":"主卧筒灯", "index":8,  "pos":{"x":23, "y":120}},
+		{"text":"主卧过道", "index":7,  "pos":{"x":3,  "y":105}},
+		{"text":"主卧衣橱", "index":3,  "pos":{"x":3,  "y":80}},
+		{"text":"主卫顶灯", "index":6,  "pos":{"x":20, "y":97}},
+		{"text":"主卫镜前", "index":5,  "pos":{"x":13, "y":93}},
+		{"text":"客卫顶灯", "index":12, "pos":{"x":18, "y":8}},
+		{"text":"客卫镜前", "index":16, "pos":{"x":15, "y":13}},
+		{"text":"次卧顶灯", "index":0,  "pos":{"x":63, "y":75}},
+		{"text":"次卧筒灯", "index":2,  "pos":{"x":70, "y":80}},
+		{"text":"厨房顶灯", "index":17, "pos":{"x":50, "y":18}},
+		{"text":"书房顶灯", "index":1,  "pos":{"x":63, "y":38}}
+		];
+
+	$("#main").css('width', $("#main").innerWidth());
+	$("#main").css('height', $("#main").innerHeight());
+	var obj_room = document.getElementById('room');
+	obj_room.width = $("#room").innerWidth();
+	obj_room.height = $("#room").innerHeight();
+	var client_rect = {"width":obj_room.width, "height":obj_room.height};
+	draw(rooms, lights, client_rect);
+
 
 	$(document).ready(run);
 

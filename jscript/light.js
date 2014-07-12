@@ -132,14 +132,67 @@ function cmd_state(o){
     set_light_state(light_state);
 }
 
-function create_button(lights){
-    var $parent = $("#main");
+function min(a, b) {
+    if (a <= b)
+        return a;
+    return b;
+}
+
+function max(a, b) {
+    if (a >= b)
+        return a;
+    return b;
+}
+
+function room_range(rooms) {
+    min_x = 0;
+    max_x = 0;
+    min_y = 0;
+    max_y = 0;
+    for (var i = 0; i < rooms.length; i++) {
+        min_x = min(min_x, rooms[i].x);
+        max_x = max(max_x, rooms[i].x + rooms[i].width);
+        min_y = min(min_y, rooms[i].y);
+        max_y = max(max_y, rooms[i].y + rooms[i].height);
+    }
+    return {"x": min_x, "y": min_y, "width": max_x - min_x, "height": max_y - min_y};
+}
+
+function draw(rooms, lights, clt_rect) {
+    room_rect = room_range(rooms);
+    var offset = {"x":-room_rect.x, "y":-room_rect.y};
+    var scale = min(clt_rect.width / room_rect.width, clt_rect.height / room_rect.height);
+    create_room("room", rooms, offset, scale);
+    create_light("main", lights, offset, scale);
+}
+
+function create_room(container, rooms, offset, scale) {
+	var canvas=document.getElementById(container);
+	var ctx=canvas.getContext("2d");
+	ctx.fillStyle='#FF0000';
+	for (var i = 0; i < rooms.length; i++) {
+		x = (offset.x + rooms[i].x) * scale;
+		y = (offset.y + rooms[i].y) * scale;
+		width = rooms[i].width * scale;
+		height = rooms[i].height * scale;
+		ctx.strokeRect(x, y, width, height);
+	}
+}
+
+function create_light(container, lights, offset, scale) {
+    var $parent = $("#" + container);
+    unit = 4;
+    half = unit / 2;
     for (var i = 0; i < lights.length; i++) {
         light_id = lights[i].index;
         if (light_id >= 0) {
             name = lights[i].text;
-            var btn = $("<button id='" + "light" + light_id + "' onclick='light_click(" + lights[i].index + ")'>" + name + "</button>");
-            $parent.append(btn);
+            x = $parent.offset().left + (offset.x + lights[i].pos.x - half) * scale;
+            y = $parent.offset().top + (offset.y + lights[i].pos.y - half) * scale;
+            size = unit * scale;
+            var obj_light = $(
+                "<div id='light" + light_id + "' onclick='light_click(" + lights[i].index + ")' style='border:3px solid;position:absolute;border-radius:" + (size / 2) + "pt;left:" + x + ";top:" + y + ";width:" + size + ";height:" + size + ";'></div>");
+            $parent.append(obj_light);
             light_state[light_id] = 0;
         }
         else {
