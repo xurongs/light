@@ -11,7 +11,6 @@ function onClose(evt) {
     // so we can see it closed
     // console.log('closed');
     document.body.style.backgroundColor='#ffb2b2';
-    alert("Socket closed - your erlang probably crashed");
 }  
   
 function onMessage(evt) {
