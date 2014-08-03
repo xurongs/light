@@ -148,9 +148,9 @@ void set_serial(int fd)
 	
 }
 
-void forward_serial()
+void forward_serial(const char *dev)
 {
-	int uart = open("/dev/ttySAC2", O_RDWR | O_NOCTTY | O_NDELAY);
+	int uart = open(dev, O_RDWR | O_NOCTTY | O_NDELAY);
 	if (-1 != uart)
 	{
 		set_serial(uart);
@@ -166,13 +166,18 @@ void forward_serial()
 	}
 	else
 	{
-		fprintf(stderr, "open uart failed.%d\n", errno);
+		fprintf(stderr, "open uart failed(%d).\n", errno);
 	}
 }
 
-int main()
+int main(int argc, const char *argv[])
 {
-	fprintf(stderr, "Start serial forward...\n");
-	forward_serial();
-	return 0;
+	const char *uart_dev = "/dev/ttySAC2";
+	if (argc >= 2)
+	{
+		uart_dev = argv[1];
+	}
+	fprintf(stderr, "Start serial(%s) forward...\n", uart_dev);
+	forward_serial(uart_dev);		
+	return -1;
 }

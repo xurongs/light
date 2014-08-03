@@ -38,7 +38,7 @@ register() ->
 %%------------------------------------------------------------------------------
 init([]) ->
 	process_flag(trap_exit, true),
-	Uart = open_port({spawn, "./serial_forward"}, [stream]),
+	Uart = open_port({spawn, "./serial_forward /dev/ttySAC2"}, [stream]),
 	link(Uart),
 	{{light, NewLights}, {key, NewKeys}} = init_data(Uart),
 	State = #state{uart = Uart, key = NewKeys, light = NewLights},
