@@ -65,6 +65,7 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 %%------------------------------------------------------------------------------
 recv_signal([0 | Data]) when length(Data) =:= 3 ->
 	Scode = list2num(Data),
+	proc_signal(Scode),
 	io:format("~w~n", [Scode]);
 recv_signal(_) ->
 	void.
