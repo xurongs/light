@@ -70,7 +70,7 @@ recv_signal(_) ->
 	void.
 
 list2num(Data) ->
-	lists:foldl(fun(X, Sum) -> X + Sum end, 0, Data).
+	lists:foldl(fun(X, Sum) -> X + Sum * 256 end, 0, Data).
 
 proc_signal(_Scode) ->
 	light:turn_off(4).
