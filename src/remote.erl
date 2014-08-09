@@ -44,8 +44,7 @@ handle_cast(_Msg, State) -> {noreply, State}.
 %% handle_info
 %%------------------------------------------------------------------------------
 handle_info({_Uart, {data, Data}}, State) ->
-	io:format("~w~n", [Data]),
-	light:turn_off(4),
+	recv_signal(Data),
 	{noreply, State};
 
 handle_info(_Info, State) -> {noreply, State}.
@@ -64,4 +63,14 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 %%------------------------------------------------------------------------------
 %% inner functions
 %%------------------------------------------------------------------------------
+recv_signal([0 | Data]) when length(Data) =:= 3 ->
+	Scode = list2num(Data),
+	io:format("~w~n", [Scode]);
+recv_signal(_) ->
+	void.
 
+list2num(Data) ->
+	lists:foldl(fun(X, Sum) -> X + Sum end, 0, Data).
+
+proc_signal(_Scode) ->
+	light:turn_off(4).
