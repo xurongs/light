@@ -6,7 +6,7 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {uart, last = 0}).
+-record(state, {uart, last = 0, dev}).
 
 
 %%------------------------------------------------------------------------------
@@ -31,7 +31,8 @@ init([]) ->
 	process_flag(trap_exit, true),
 	Uart = open_port({spawn, "./serial_forward /dev/ttySAC1"}, [stream]),
 	link(Uart),
-	State = #state{uart = Uart},
+	Device = init_dev(),
+	State = #state{uart = Uart, dev = Device},
 	{ok, State}.
 
 %%------------------------------------------------------------------------------
@@ -52,7 +53,8 @@ handle_cast(_Msg, State) -> {noreply, State}.
 %% handle_info
 %%------------------------------------------------------------------------------
 handle_info({_Uart, {data, Data}}, State) ->
-	SCode = recv_signal(Data),
+	#state{dev = Device} = State,
+	SCode = recv_signal(Data, Device),
 	{noreply, State#state{last = SCode}};
 
 handle_info(_Info, State) -> {noreply, State}.
@@ -71,16 +73,30 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 %%------------------------------------------------------------------------------
 %% inner functions
 %%------------------------------------------------------------------------------
-recv_signal([0 | Data]) when length(Data) =:= 3 ->
+init_dev() ->
+	dict:from_list([
+		{16#5344C0, [{light, turn_on, 4}]},
+		{16#534430, [{light, turn_off, 4}]}
+		]).
+
+recv_signal([0 | Data], Device) when length(Data) =:= 3 ->
 	SCode = list2num(Data),
-	proc_signal(SCode),
+	proc_signal(SCode, Device),
 	io:format("~w~n", [SCode]),
 	SCode;
-recv_signal(_) ->
+recv_signal(_, _) ->
 	-1.
 
 list2num(Data) ->
 	lists:foldl(fun(X, Sum) -> X + Sum * 256 end, 0, Data).
 
-proc_signal(_Scode) ->
-	light:turn_off(4).
+lookup_proc(Scode, Device) ->
+	case dict:is_key(Scode, Device) of
+		true ->
+			dict:fetch(Scode, Device);
+		false ->
+			[]
+	end.	
+
+proc_signal(Scode, Device) ->
+	lists:foreach(fun({Mod, Func, Arg}) -> Mod:Func(Arg) end, lookup_proc(Scode, Device)).
