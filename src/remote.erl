@@ -3,7 +3,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([start_link/0, start/0, stop/0]).
 -export([last/0]).
--export([switch/1]).
+-export([switch/1, turn_on_a_while/2]).
 
 -define(SERVER, ?MODULE).
 
@@ -23,7 +23,8 @@ stop() ->
 	gen_server:call(?MODULE, stop).
 
 last() ->
-	gen_server:call(?MODULE, last).
+	{ok, {last, SCode}} = gen_server:call(?MODULE, last),
+	io:format('~.16B~n', [SCode]).
 
 %%------------------------------------------------------------------------------
 %% init
@@ -82,8 +83,10 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 %%------------------------------------------------------------------------------
 init_dev() ->
 	dict:from_list([
-		{16#5344C0, [{?MODULE, switch, 4}]},
-		{16#534430, [{?MODULE, switch, 8}]}
+		{16#5344C0, [{?MODULE, switch,          [4]}]},
+		{16#534430, [{?MODULE, switch,          [8]}]},
+		{16#53450C, [{?MODULE, switch,          [18]}]},
+		{16#D4B22E, [{?MODULE, turn_on_a_while, [13, 60]}]}
 		]).
 
 recent_append(SCode, Recent) ->
@@ -99,7 +102,7 @@ recv_signal([0 | Data], Device, Recent) when length(Data) =:= 3 ->
 		true ->
 			Recent;
 		false ->
-			io:format("receive <~w>.~n", [SCode]),
+			io:format("receive <~.16B>.~n", [SCode]),
 			proc_signal(SCode, Device),
 			recent_append(SCode, Recent)
 	end,
@@ -119,7 +122,7 @@ lookup_proc(Scode, Device) ->
 	end.	
 
 proc_signal(Scode, Device) ->
-	lists:foreach(fun({Mod, Func, Arg}) -> Mod:Func(Arg) end, lookup_proc(Scode, Device)).
+	lists:foreach(fun({Mod, Func, Arg}) -> apply(Mod, Func, Arg) end, lookup_proc(Scode, Device)).
 
 light_status(Number) ->
 	{ok, {status, {Light, _}}} = light:status(),
@@ -135,3 +138,12 @@ switch(Number) ->
 		off ->
 			turn_on
 	end(Number).
+
+turn_on_a_while(Number, Seconds) ->
+	case light_status(Number) of
+		on ->
+			void;
+		off ->
+			light:turn_on(Number),
+			timer:apply_after(timer:seconds(Seconds), light, turn_off, [Number])
+	end.
