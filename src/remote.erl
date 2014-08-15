@@ -3,7 +3,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([start_link/0, start/0, stop/0]).
 -export([last/0]).
--export([switch/1, turn_on_a_while/2, dark_auto/2]).
+-export([switch/1, turn_on_a_while/2, dark_auto/2, sleep_auto/2]).
 
 -define(SERVER, ?MODULE).
 
@@ -83,10 +83,11 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 %%------------------------------------------------------------------------------
 init_dev() ->
 	dict:from_list([
-		{16#5344C0, [{?MODULE, switch,          [4]}]},
-		{16#534430, [{?MODULE, switch,          [8]}]},
-		{16#53450C, [{?MODULE, switch,          [18]}]},
-		{16#D4B22E, [{?MODULE, night_auto,      [13, 60]}]}
+		{16#5344C0, [{?MODULE, switch,     [4]}]},
+		{16#534430, [{?MODULE, switch,     [8]}]},
+		{16#53450C, [{?MODULE, switch,     [18]}]},
+		{16#D4B22E, [{?MODULE, dark_auto,  [13, 30]}]},
+		{16#55E20A, [{?MODULE, sleep_auto, [14, 60]}]}
 		]).
 
 recent_append(SCode, Recent) ->
@@ -145,6 +146,18 @@ dark() ->
 
 dark_auto(Number, Seconds) ->
 	case dark() of
+		true ->
+			turn_on_a_while(Number, Seconds);
+		false ->
+			void
+	end.
+
+sleep() ->
+	{Hour, _Minute, _Second} = time(),
+	(Hour < 6).
+
+sleep_auto(Number, Seconds) ->
+	case sleep() of
 		true ->
 			turn_on_a_while(Number, Seconds);
 		false ->
