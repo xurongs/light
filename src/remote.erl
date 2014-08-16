@@ -3,7 +3,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([start_link/0, start/0, stop/0]).
 -export([last/0]).
--export([switch/1, turn_on_a_while/2, dark_auto/2, sleep_auto/2]).
+-export([switch/1, dark/0, sleep/0, apply_when/2]).
 
 -define(SERVER, ?MODULE).
 
@@ -83,11 +83,11 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 %%------------------------------------------------------------------------------
 init_dev() ->
 	dict:from_list([
-		{16#5344C0, [{?MODULE, switch,     [4]}]},
-		{16#534430, [{?MODULE, switch,     [8]}]},
-		{16#53450C, [{?MODULE, switch,     [18]}]},
-		{16#D4B22E, [{?MODULE, dark_auto,  [13, 30]}]},
-		{16#55E20A, [{?MODULE, sleep_auto, [14, 60]}]}
+		{16#5344C0, [{switch,     [4]}]},
+		{16#534430, [{switch,     [8]}]},
+		{16#53450C, [{switch,     [18]}]},
+		{16#D4B22E, [{apply_when, [{dark, []}, {sche, turn_on, [13, 30]}]}]},
+		{16#55E20A, [{apply_when, [{sleep, []}, {sche, turn_on, [14, 60]}]}]}
 		]).
 
 recent_append(SCode, Recent) ->
@@ -123,7 +123,7 @@ lookup_proc(Scode, Device) ->
 	end.	
 
 proc_signal(Scode, Device) ->
-	lists:foreach(fun({Mod, Func, Arg}) -> apply(Mod, Func, Arg) end, lookup_proc(Scode, Device)).
+	lists:foreach(fun(Proc) -> apply_1(Proc) end, lookup_proc(Scode, Device)).
 
 light_status(Number) ->
 	{ok, {status, {Light, _}}} = light:status(),
@@ -140,35 +140,24 @@ switch(Number) ->
 			turn_on
 	end(Number).
 
+
+apply_1({M, F, A}) ->
+	apply(M, F, A);
+apply_1({F, A}) ->
+	apply(?MODULE, F, A).
+
+apply_when(When, Apply) ->
+	case apply_1(When) of
+		true ->
+			apply_1(Apply);
+		false ->
+			unmatch
+	end.
+
 dark() ->
 	{Hour, _Minute, _Second} = time(),
 	(Hour < 6) or (Hour >= 18).
 
-dark_auto(Number, Seconds) ->
-	case dark() of
-		true ->
-			turn_on_a_while(Number, Seconds);
-		false ->
-			void
-	end.
-
 sleep() ->
 	{Hour, _Minute, _Second} = time(),
 	(Hour < 6).
-
-sleep_auto(Number, Seconds) ->
-	case sleep() of
-		true ->
-			turn_on_a_while(Number, Seconds);
-		false ->
-			void
-	end.
-
-turn_on_a_while(Number, Seconds) ->
-	case light_status(Number) of
-		on ->
-			void;
-		off ->
-			light:turn_on(Number),
-			timer:apply_after(timer:seconds(Seconds), light, turn_off, [Number])
-	end.
