@@ -3,7 +3,8 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([start_link/0, start/0, stop/0]).
 -export([last/0]).
--export([switch/1, dark/0, sleep/0, apply_when/2]).
+-export([manual/1]).
+-export([switch/1, dark/0, apply_when/2, light_off/2]).
 
 -define(SERVER, ?MODULE).
 
@@ -25,6 +26,9 @@ stop() ->
 last() ->
 	{ok, {last, SCode}} = gen_server:call(?MODULE, last),
 	io:format('~.16B~n', [SCode]).
+	
+manual(SCode) ->
+	gen_server:cast(?MODULE, {scode, [0 | int_to_list(SCode, [])]}).
 
 %%------------------------------------------------------------------------------
 %% init
@@ -49,6 +53,9 @@ handle_call(stop, _From, State) -> {stop, normal, stopped, State}.
 %%------------------------------------------------------------------------------
 %% handle_cast
 %%------------------------------------------------------------------------------
+handle_cast({scode, SCode}, State) ->
+	handle_info({self(), {data, SCode}}, State);
+
 handle_cast(_Msg, State) -> {noreply, State}.
 
 %%------------------------------------------------------------------------------
@@ -86,9 +93,12 @@ init_dev() ->
 		{16#5344C0, [{switch,     [4]}]},
 		{16#534430, [{switch,     [8]}]},
 		{16#53450C, [{switch,     [18]}]},
-		{16#D4B22E, [{apply_when, [{dark, []}, {sche, turn_on, [13, 30]}]}]},
-		{16#55E20A, [{apply_when, [{sleep, []}, {sche, turn_on, [14, 60]}]}]}
+		{16#D4B22E, [turn_on_when_dark([13, 14, 15, 18], 13, 30)]},
+		{16#55E20A, [turn_on_when_dark([13, 14, 15, 18], 14, 60)]}
 		]).
+		
+turn_on_when_dark(Room, Number, Seconds) ->
+	{apply_when, [[{dark, []}, {light_off, [Room, [Number]]}], {sche, turn_on, [Number, Seconds]}]}.
 
 recent_append(SCode, Recent) ->
 	{ok, TRef} = timer:send_after(timer:seconds(2), {kill, SCode}),
@@ -125,12 +135,15 @@ lookup_proc(Scode, Device) ->
 proc_signal(Scode, Device) ->
 	lists:foreach(fun(Proc) -> apply_1(Proc) end, lookup_proc(Scode, Device)).
 
-light_status(Number) ->
-	{ok, {status, {Light, _}}} = light:status(),
+light_status_2(Number, Light) ->
 	case ((Light bsr Number) band 1) of
 		0 -> off;
 		1 -> on
 	end.
+	
+light_status(Number) ->
+	{ok, {status, {Light, _}}} = light:status(),
+	light_status_2(Number, Light).
 
 switch(Number) ->
 	light:case light_status(Number) of
@@ -147,12 +160,23 @@ apply_1({F, A}) ->
 	apply(?MODULE, F, A).
 
 apply_when(When, Apply) ->
-	case apply_1(When) of
+	case lists:all(fun(MFA) -> apply_1(MFA) end, When) of
 		true ->
 			apply_1(Apply);
 		false ->
 			unmatch
 	end.
+	
+light_off_3(Check, Except, Light) ->
+	lists:all(
+		fun(Number) -> 
+			off == light_status_2(Number, Light)
+		end,
+		lists:subtract(Check, Except)).
+
+light_off(Check, Except) ->
+	{ok, {status, {Light, _}}} = light:status(),
+	light_off_3(Check, Except, Light).
 
 dark() ->
 	{Hour, _Minute, _Second} = time(),
@@ -161,3 +185,8 @@ dark() ->
 sleep() ->
 	{Hour, _Minute, _Second} = time(),
 	(Hour < 6).
+	
+int_to_list(0, List) ->
+	List;
+int_to_list(SCode, List) ->
+	int_to_list(SCode div 256, [SCode rem 256 | List]).
