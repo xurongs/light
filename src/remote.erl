@@ -37,7 +37,7 @@ init([]) ->
 	process_flag(trap_exit, true),
 	Uart = open_port({spawn, "./serial_forward /dev/ttySAC1"}, [stream]),
 	link(Uart),
-	Device = init_dev(),
+	Device = load_dev(),
 	State = #state{uart = Uart, dev = Device},
 	{ok, State}.
 
@@ -88,17 +88,37 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 %%------------------------------------------------------------------------------
 %% inner functions
 %%------------------------------------------------------------------------------
-init_dev() ->
+load_dev() ->
+	Rooms = lists:map(fun({_, L}) -> L end,
+		[
+			{"Living Room",     [13, 14, 15, 18]},
+			{"Master Bedroom",  [3, 4, 7, 8]},
+			{"Second Bedroom",  [0, 2]},
+			{"Study Room",      [1]},
+			{"Master Bathroom", [5, 6]},
+			{"Second Bathroom", [12, 16]},
+			{"Kitchen",         [17]}
+		]),
 	dict:from_list([
 		{16#5344C0, [{switch,     [4]}]},
 		{16#534430, [{switch,     [8]}]},
 		{16#53450C, [{switch,     [18]}]},
-		{16#D4B22E, [turn_on_when_dark([13, 14, 15, 18], 13, 30)]},
-		{16#55E20A, [turn_on_when_dark([13, 14, 15, 18], 14, 60)]}
+		{16#D4B22E, [turn_on_when_dark(Rooms, 13, 30)]},
+		{16#55E20A, [turn_on_when_dark(Rooms, 14, 60)]}
 		]).
 		
-turn_on_when_dark(Room, Number, Seconds) ->
-	{apply_when, [[{dark, []}, {light_off, [Room, [Number]]}], {sche, turn_on, [Number, Seconds]}]}.
+find_room(Rooms, Number) ->
+	lists:flatten(
+		lists:filter(
+			fun(Lights) ->
+				lists:any(
+					fun(X) -> X =:= Number end,
+					Lights)
+				end,
+			Rooms)).
+		
+turn_on_when_dark(Rooms, Number, Seconds) ->
+	{apply_when, [[{dark, []}, {light_off, [find_room(Rooms, Number), [Number]]}], {sche, turn_on, [Number, Seconds]}]}.
 
 recent_append(SCode, Recent) ->
 	{ok, TRef} = timer:send_after(timer:seconds(2), {kill, SCode}),
@@ -181,10 +201,6 @@ light_off(Check, Except) ->
 dark() ->
 	{Hour, _Minute, _Second} = time(),
 	(Hour < 6) or (Hour >= 18).
-
-sleep() ->
-	{Hour, _Minute, _Second} = time(),
-	(Hour < 6).
 	
 int_to_list(0, List) ->
 	List;
