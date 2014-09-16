@@ -88,24 +88,40 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 %%------------------------------------------------------------------------------
 %% inner functions
 %%------------------------------------------------------------------------------
+read_term_from_file(File, Path) ->
+	case file:path_open(Path, File, [read]) of
+		{ok, Stream, FullName} ->
+			Return = 
+				case systools_lib:read_term_from_stream(Stream, File) of
+					{ok, Term} ->
+						{ok, Term, FullName};
+					Other ->
+						Other
+				end,
+			file:close(Stream),
+			Return;
+		_Other ->
+			{error, {not_found, File}}
+	end.
+
 load_dev() ->
-	Rooms = lists:map(fun({_, L}) -> L end,
-		[
-			{"Living Room",     [13, 14, 15, 18]},
-			{"Master Bedroom",  [3, 4, 7, 8]},
-			{"Second Bedroom",  [0, 2]},
-			{"Study Room",      [1]},
-			{"Master Bathroom", [5, 6]},
-			{"Second Bathroom", [12, 16]},
-			{"Kitchen",         [17]}
-		]),
-	dict:from_list([
-		{16#5344C0, [{switch,     [4]}]},
-		{16#534430, [{switch,     [8]}]},
-		{16#53450C, [{switch,     [18]}]},
-		{16#D4B22E, [turn_on_when_dark(Rooms, 13, 30)]},
-		{16#55E20A, [turn_on_when_dark(Rooms, 14, 60)]}
-		]).
+	{ok, Cfg, _} = read_term_from_file("remote.cfg", ["."]),
+	Rooms = lists:filtermap(fun({Cmd, {_Name, Room}}) -> case Cmd of room -> {true, Room}; _ -> false end end, Cfg),
+	Devices = lists:map(
+		fun({SCode, OpList}) -> {SCode,
+			lists:map(
+				fun(Op) ->
+					case Op of
+						{switch, Number} ->
+							{swtich, [Number]};
+						{temporary, Number, Seconds} ->
+							turn_on_when_dark(Rooms, Number, Seconds)
+					end
+				end,
+				OpList)}
+		end,
+		lists:filtermap(fun({Cmd, SCode}) -> case Cmd of scode -> {true, SCode}; _ -> false end end, Cfg)),
+	dict:from_list(Devices).
 		
 find_room(Rooms, Number) ->
 	lists:flatten(
