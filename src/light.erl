@@ -6,7 +6,7 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {uart, key, light, task = [], client = []}).
+-record(state, {dev, key, light, task = [], client = []}).
 
 
 %%------------------------------------------------------------------------------
@@ -19,29 +19,33 @@ start_link() ->
 	gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 stop() -> 
-	gen_server:call(?MODULE, stop).
+	gen_server:call(?SERVER, stop).
 
-turn_on(Number) ->
-	gen_server:call(?MODULE, {on, Number}).
+turn_on(Id) ->
+	gen_server:call(?SERVER, {on, Id}).
 
-turn_off(Number) ->
-	gen_server:call(?MODULE, {off, Number}).
+turn_off(Id) ->
+	gen_server:call(?SERVER, {off, Id}).
 
 status() ->
-	gen_server:call(?MODULE, {status}).	
+	gen_server:call(?SERVER, {status}).	
 
 register() ->
-	gen_server:call(?MODULE, {register}).	
+	gen_server:call(?SERVER, {register}).	
 
 %%------------------------------------------------------------------------------
 %% init
 %%------------------------------------------------------------------------------
 init([]) ->
 	process_flag(trap_exit, true),
-	Uart = open_port({spawn, "./serial_forward /dev/ttySAC2"}, [stream]),
-	link(Uart),
-	{{light, NewLights}, {key, NewKeys}} = init_data(Uart),
-	State = #state{uart = Uart, key = NewKeys, light = NewLights},
+
+	{ok, Dev} = dev_serial21:start_link({"/dev/ttySCA0", [
+		{0, l0}, {1, l1}, {2, l2}, {3, l3}, {4, l4}, {5, l5}, {6, l6},
+		{7, l7}, {8, l8}, {9, l9}, {10, l10}, {11, l11}, {12, l12}, {13, l13},
+		{14, l14}, {15, l15}, {16, l16}, {17, l17}, {18, l18}, {19, l19}, {20, l20}
+		]}),
+
+	State = #state{dev = Dev, key = [], light = []},
 	{ok, State}.
 
 %%------------------------------------------------------------------------------
@@ -58,21 +62,21 @@ handle_call({register}, From, State) ->
 	end,
 	{reply, {ok, {register, From}}, State#state{client = NewClients}, 1000};
 
-handle_call({on, Number}, From, State) ->
-	#state{uart = Uart, task = Tasks} = State,
-	Uart ! {self(), {command, [2, Number, 255]}},
-	NewTasks = [{{on, Number}, From} | Tasks],
+handle_call({on, Id}, From, State) ->
+	#state{dev = Dev, task = Tasks} = State,
+	dev_serial21:turn_on(Dev, Id),
+	NewTasks = [{{on, Id}, From} | Tasks],
 	{noreply, State#state{task = NewTasks}, 1000};
 
-handle_call({off, Number}, From, State) ->
-	#state{uart = Uart, task = Tasks} = State,
-	Uart ! {self(), {command, [3, Number, 255]}},
-	NewTasks = [{{off, Number}, From} | Tasks],
+handle_call({off, Id}, From, State) ->
+	#state{dev = Dev, task = Tasks} = State,
+	dev_serial21:turn_off(Dev, Id),
+	NewTasks = [{{off, Id}, From} | Tasks],
 	{noreply, State#state{task = NewTasks}, 1000};
 
 handle_call({status}, _, State) ->
-	#state{light = Lights, key = Keys} = State,
-	{reply, {ok, {status, {Lights, Keys}}}, State, 1000};
+	#state{light = Light} = State,
+	{reply, {ok, {status, {light, Light}}}, State, 1000};
 
 handle_call(stop, _From, State) -> {stop, normal, stopped, State}.
 
@@ -84,13 +88,13 @@ handle_cast(_Msg, State) -> {noreply, State}.
 %%------------------------------------------------------------------------------
 %% handle_info
 %%------------------------------------------------------------------------------
-handle_info({_Uart, {data, Data}}, State) ->
-	#state{task = Tasks, client = Clients} = State,
-	Status = {{light, NewLights}, {key, NewKeys}} = get_status(Data),
-	NewTasks = ack_task(NewLights, Tasks),
-	notice_clients(Status, Clients),
-	display_status(Status),
-	{noreply, State#state{key = NewKeys, light = NewLights, task = NewTasks}};
+handle_info({light, LightStatus}, State) ->
+	#state{task = Tasks, client = Clients, light = CurrentLight} = State,
+	NewLight = update_status(CurrentLight, LightStatus),
+	NewTasks = ack_task(NewLight, Tasks),
+	notice_clients(NewLight, Clients),
+	display_status(NewLight),
+	{noreply, State#state{light = NewLight, task = NewTasks}};
 
 handle_info({'DOWN', _MonitorRef, process, Pid, _Info}, State) ->
 	#state{client = Clients} = State,
@@ -118,57 +122,38 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 %%------------------------------------------------------------------------------
 %% inner functions
 %%------------------------------------------------------------------------------
-merge_value(V0, V1, V2) ->
-	(V0 band 16#7f) bor ((V1 band 16#7f) bsl 7) bor ((V2 band 16#7f) bsl 14).
-	
-get_status([1, L0, L1, L2, K0, K1, K2, 16#ff]) ->
-	{{light, merge_value(L0, L1, L2)}, {key, merge_value(K0, K1, K2)}}.
-	
-init_data(Uart) ->
-	Uart ! {self(), {command, [16#ff, 16#ff]}},
-	Uart ! {self(), {command, [1, 16#ff]}},
-	receive
-		{Uart, {data, Data}} ->
-			get_status(Data)
-	after 5000 ->
-		timeout
-	end.
+status_is_match(StatusList, Id, Expect) ->
+	R = case lists:keyfind(Id, 1, StatusList) of
+		false -> false;
+		{Id, Current} -> Current =:= Expect
+	end,
+	R.
 
-on_off(OnOff) ->
-	if
-		OnOff =:= 0 -> off;
-		true -> on
-	end.
+batch_ack(Tasks, Result) ->
+	lists:foreach(fun({{Type, Id}, From}) -> gen_server:reply(From, {Result, {Type, Id}}) end, Tasks).
 
-ack_task(Lights, [{{OnOff, Number}, From} = H | Cmds]) ->
-	case OnOff =:= on_off(Lights band (1 bsl Number)) of
-		true ->
-			gen_server:reply(From, {ok, {OnOff, Number}}),
-			ack_task(Lights, Cmds);
-		false -> [H | ack_task(Lights, Cmds)]
-	end;
-ack_task(_, []) ->
+ack_task(Lights, Tasks) ->
+	{Finish, NotFinish} = lists:partition(fun({{Type, Id}, _From}) ->
+		status_is_match(Lights, Id, Type) end, Tasks),
+	batch_ack(Finish, ok),
+	NotFinish.
+
+clear_task(Tasks) ->
+	batch_ack(Tasks, timeout),
 	[].
 
 notice_clients(Status, Clients) ->
 	lists:foreach(fun({Pid, _}) -> Pid ! Status end, Clients).
 
-clear_task(Tasks) ->
-	lists:foreach(fun({{OnOff, Number}, From}) -> gen_server:reply(From, {timeout, {OnOff, Number}}) end, Tasks),
-	[].
+display_status(Light) ->
+	{On, Off} = lists:partition(fun({_Id, Status}) -> Status =:= on end, Light),
+	io:format("on : ~w ~noff: ~w ~n", [
+		lists:map(fun({Id, _Status}) -> Id end, On),
+		lists:map(fun({Id, _Status}) -> Id end, Off)]).
 
-display_status({{light, Lights}, {key, Keys}}) ->
-	io:format("~6w ~s~n", [title, "+ 1 2 3 4 5 6 7 8 9 + 1 2 3 4 5 6 7 8 9 +"]),
-	display_status_list(light, bitmap_to_list(Lights)),
-	display_status_list(switch, bitmap_to_list(Keys)).
-
-display_status_list(Type, Lists) when is_list(Lists) ->
-	io:format("~6w ~s~n", [Type,
-		string:join(
-			lists:map(fun(X) -> case X of false -> " "; true -> "*" end end, Lists)
-			, " ")]).
-
-bitmap_to_list(Value) ->
-	lists:map(fun(X) -> ((Value bsr X) band 1) > 0 end,
-		lists:seq(0, 21)).
-
+update_status(Current, New) ->
+	lists:append(
+		lists:filter(
+			fun({Id, _}) -> not lists:keymember(Id, 1, New) end,
+			Current),
+		New).

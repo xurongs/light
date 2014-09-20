@@ -9,15 +9,11 @@ start(Browser) ->
 
 loop(Browser) ->
 	receive
-	{Browser, {struct, [{on, LightIdx}]}} ->
-		io:format("on ~w~n", [LightIdx]),
-		light:turn_on(LightIdx),
-		send_status(Browser),
+	{Browser, {struct, [{on, Light}]}} ->
+		switch_light(Browser, turn_on, Light),
 		loop(Browser);
-	{Browser, {struct, [{off, LightIdx}]}} ->
-		io:format("off ~w~n", [LightIdx]),
-		light:turn_off(LightIdx),
-		send_status(Browser),
+	{Browser, {struct, [{off, Light}]}} ->
+		switch_light(Browser, turn_off, Light),
 		loop(Browser);
 	{Browser, {struct, Msg}} ->
 		os:format("~w~n", [Msg]),
@@ -28,6 +24,12 @@ loop(Browser) ->
 	end.
 
 send_status(Browser) ->
-	{ok, {status, {Lights, _}}} = light:status(),
-	io:format("status ~w~n", [Lights]),
-	Browser ! [{cmd, cmd_state}, {state, Lights}].
+	{ok, {status, {light, Light}}} = light:status(),
+	Browser ! [{cmd, cmd_state}, {state, Light}].
+
+switch_light(Browser, Turn, Light) ->
+	Id = binary_to_atom(Light, latin1),
+	io:format("~w ~w~n", [Turn, Id]),
+	light:Turn(Id),
+	send_status(Browser).
+
