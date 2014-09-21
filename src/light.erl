@@ -39,7 +39,7 @@ register() ->
 init([]) ->
 	process_flag(trap_exit, true),
 
-	{ok, Dev} = dev_serial21:start_link({"/dev/ttySCA0", [
+	{ok, Dev} = dev_serial21:start_link({"/dev/ttySAC2", [
 		{0, l0}, {1, l1}, {2, l2}, {3, l3}, {4, l4}, {5, l5}, {6, l6},
 		{7, l7}, {8, l8}, {9, l9}, {10, l10}, {11, l11}, {12, l12}, {13, l13},
 		{14, l14}, {15, l15}, {16, l16}, {17, l17}, {18, l18}, {19, l19}, {20, l20}
@@ -143,7 +143,7 @@ clear_task(Tasks) ->
 	[].
 
 notice_clients(Status, Clients) ->
-	lists:foreach(fun({Pid, _}) -> Pid ! Status end, Clients).
+	lists:foreach(fun({Pid, _}) -> Pid ! {light, Status} end, Clients).
 
 display_status(Light) ->
 	{On, Off} = lists:partition(fun({_Id, Status}) -> Status =:= on end, Light),

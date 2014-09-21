@@ -50,7 +50,7 @@ handle_cast(_Msg, State) -> {noreply, State}.
 %%------------------------------------------------------------------------------
 %% handle_info
 %%------------------------------------------------------------------------------
-handle_info({{light, Light}, {key, _Key}}, State) ->
+handle_info({{light, Light}}, State) ->
 	#state{task = Task} = State,
 	NewTask = clear_task(Light, Task),
 	{noreply, State#state{task = NewTask}};
@@ -85,18 +85,19 @@ clear_task(Light, Task) ->
 			end
 		end, Task, dict:fetch_keys(Task)).
 
-light_status_2(Number, Light) ->
-	case ((Light bsr Number) band 1) of
-		0 -> off;
-		1 -> on
+light_status_2(Id, Lights) ->
+	case lists:keyfind(Id, 1, Lights) of
+		false -> unknown;
+		{Id, Current} -> Current
 	end.
-light_status(Number) ->
-	{ok, {status, {Light, _}}} = light:status(),
-	light_status_2(Number, Light).
+	
+all_light_status() ->
+	{ok, {status, {light, Light}}} = light:status(),
+	Light.
 
 turn_on_a_while(Number, Seconds, Task) ->
 	Key = {Number, on},
-	case light_status(Number) of
+	case light_status_2(Number, all_light_status()) of
 		on ->
 			case dict:is_key(Key, Task) of
 				true ->

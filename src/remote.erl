@@ -113,7 +113,7 @@ load_dev() ->
 				fun(Op) ->
 					case Op of
 						{switch, Number} ->
-							{swtich, [Number]};
+							{switch, [Number]};
 						{temporary, Number, Seconds} ->
 							turn_on_when_dark(Rooms, Number, Seconds)
 					end
@@ -171,24 +171,25 @@ lookup_proc(Scode, Device) ->
 proc_signal(Scode, Device) ->
 	lists:foreach(fun(Proc) -> apply_1(Proc) end, lookup_proc(Scode, Device)).
 
-light_status_2(Number, Light) ->
-	case ((Light bsr Number) band 1) of
-		0 -> off;
-		1 -> on
+light_status_2(Id, Lights) ->
+	case lists:keyfind(Id, 1, Lights) of
+		false -> unknown;
+		{Id, Current} -> Current
 	end.
 	
-light_status(Number) ->
-	{ok, {status, {Light, _}}} = light:status(),
-	light_status_2(Number, Light).
+all_light_status() ->
+	{ok, {status, {light, Light}}} = light:status(),
+	Light.
 
-switch(Number) ->
-	light:case light_status(Number) of
+switch(Id) ->
+	light:case light_status_2(Id, all_light_status()) of
 		on ->
 			turn_off;
 		off ->
-			turn_on
-	end(Number).
-
+			turn_on;
+		_ ->
+			fun(_Id) -> unknown end
+	end(Id).
 
 apply_1({M, F, A}) ->
 	apply(M, F, A);
@@ -211,8 +212,7 @@ light_off_3(Check, Except, Light) ->
 		lists:subtract(Check, Except)).
 
 light_off(Check, Except) ->
-	{ok, {status, {Light, _}}} = light:status(),
-	light_off_3(Check, Except, Light).
+	light_off_3(Check, Except, all_light_status()).
 
 dark() ->
 	{Hour, _Minute, _Second} = time(),
