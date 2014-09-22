@@ -50,7 +50,7 @@ handle_cast(_Msg, State) -> {noreply, State}.
 %%------------------------------------------------------------------------------
 %% handle_info
 %%------------------------------------------------------------------------------
-handle_info({{light, Light}}, State) ->
+handle_info({light, Light}, State) ->
 	#state{task = Task} = State,
 	NewTask = clear_task(Light, Task),
 	{noreply, State#state{task = NewTask}};
