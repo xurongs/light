@@ -29,7 +29,6 @@ send_status(Browser) ->
 
 switch_light(Browser, Turn, Light) ->
 	Id = binary_to_atom(Light, latin1),
-	io:format("~w ~w~n", [Turn, Id]),
 	light:Turn(Id),
 	send_status(Browser).
 

@@ -1,7 +1,7 @@
 -module(dev_serial21).
 -behaviour(gen_server).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([start_link/1, start/1, stop/1]).
+-export([start_link/2, start/2, stop/1]).
 -export([turn_on/2, turn_off/2, status/1]).
 
 -define(SERVER, ?MODULE).
@@ -12,10 +12,10 @@
 %%------------------------------------------------------------------------------
 %% external function
 %%------------------------------------------------------------------------------
-start({DevName, DevCfg}) ->
+start(DevName, DevCfg) ->
 	gen_server:start(?MODULE, [{self(), DevName, DevCfg}], []).
 
-start_link({DevName, DevCfg}) ->
+start_link(DevName, DevCfg) ->
 	gen_server:start_link(?MODULE, [{self(), DevName, DevCfg}], []).
 
 stop(Dev) -> 

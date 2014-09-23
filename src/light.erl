@@ -39,11 +39,11 @@ register() ->
 init([]) ->
 	process_flag(trap_exit, true),
 
-	{ok, Dev} = dev_serial21:start_link({"/dev/ttySAC2", [
-		{0, l0}, {1, l1}, {2, l2}, {3, l3}, {4, l4}, {5, l5}, {6, l6},
-		{7, l7}, {8, l8}, {9, l9}, {10, l10}, {11, l11}, {12, l12}, {13, l13},
-		{14, l14}, {15, l15}, {16, l16}, {17, l17}, {18, l18}, {19, l19}, {20, l20}
-		]}),
+	{ok, Cfg, _} = config:read_from_file("device.cfg", ["."]),
+	{{DevMod, DevArg}, DevCfg} = Cfg,
+
+
+	{ok, Dev} = DevMod:start_link(DevArg, DevCfg),
 
 	State = #state{dev = Dev, key = [], light = []},
 	{ok, State}.
@@ -147,7 +147,7 @@ notice_clients(Status, Clients) ->
 
 display_status(Light) ->
 	{On, Off} = lists:partition(fun({_Id, Status}) -> Status =:= on end, Light),
-	io:format("on : ~w ~noff: ~w ~n", [
+	io:format("~non : ~w ~noff: ~w ~n", [
 		lists:map(fun({Id, _Status}) -> Id end, On),
 		lists:map(fun({Id, _Status}) -> Id end, Off)]).
 

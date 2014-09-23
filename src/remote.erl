@@ -88,24 +88,8 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 %%------------------------------------------------------------------------------
 %% inner functions
 %%------------------------------------------------------------------------------
-read_term_from_file(File, Path) ->
-	case file:path_open(Path, File, [read]) of
-		{ok, Stream, FullName} ->
-			Return = 
-				case systools_lib:read_term_from_stream(Stream, File) of
-					{ok, Term} ->
-						{ok, Term, FullName};
-					Other ->
-						Other
-				end,
-			file:close(Stream),
-			Return;
-		_Other ->
-			{error, {not_found, File}}
-	end.
-
 load_dev() ->
-	{ok, Cfg, _} = read_term_from_file("remote.cfg", ["."]),
+	{ok, Cfg, _} = config:read_from_file("remote.cfg", ["."]),
 	Rooms = lists:filtermap(fun({Cmd, {_Name, Room}}) -> case Cmd of room -> {true, Room}; _ -> false end end, Cfg),
 	Devices = lists:map(
 		fun({SCode, OpList}) -> {SCode,
