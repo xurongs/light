@@ -1,22 +1,24 @@
 all: light serial_forward
+	@-pkill -f light_server:start
+	
 	@erl \
-		-app_cfg app_local.cfg \
+		-app_cfg app_extern.cfg \
 		-detached \
 		-pa deps/cowboy/ebin \
 		-pa deps/cowlib/ebin \
 		-pa deps/ezwebframe/ebin \
 		-pa deps/ranch/ebin \
 		-pa ebin \
-		-eval 'light_server:start(8081).'
-	
+		-eval 'light_server:start(8082).'
+		
 	@erl \
-		-app_cfg app_extern.cfg \
+		-app_cfg app_local.cfg \
 		-pa deps/cowboy/ebin \
 		-pa deps/cowlib/ebin \
 		-pa deps/ezwebframe/ebin \
 		-pa deps/ranch/ebin \
 		-pa ebin \
-		-eval 'light_server:start(8082).'
+		-eval 'light_server:start(8081).'
 		
 light:
 	@test -d deps || rebar get-deps	

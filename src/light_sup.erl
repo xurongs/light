@@ -30,7 +30,8 @@ init({DevCfgFile, FuncList}) ->
 	AllProcs = [
 		{light, {light, start_link, [DevCfgFile]}, permanent, 5000, worker, [light]},
 		?CHILD(sche, worker),
-		?CHILD(remote, worker)
+		?CHILD(remote, worker),
+		?CHILD(ix, worker)
 		],
 	Procs = lists:filter(fun({I, _, _, _, _, _}) -> lists:member(I, FuncList) end, AllProcs),
     {ok, { {one_for_one, 5, 10}, Procs} }.
