@@ -3,7 +3,7 @@
 -behaviour(supervisor).
 
 %% API
--export([start/0, start_link/0]).
+-export([start/2, start_link/2]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -14,24 +14,24 @@
 %% ===================================================================
 %% API functions
 %% ===================================================================
-start() ->
+start(DevCfgFile, FuncList) ->
 	spawn(fun() ->
-	    	supervisor:start_link({local, ?MODULE}, ?MODULE, [])
+	    	supervisor:start_link({local, ?MODULE}, ?MODULE, {DevCfgFile, FuncList})
 		end).
 
-start_link() ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+start_link(DevCfgFile, FuncList) ->
+    supervisor:start_link({local, ?MODULE}, ?MODULE, {DevCfgFile, FuncList}).
 
 %% ===================================================================
 %% Supervisor callbacks
 %% ===================================================================
 
-init([]) ->
-	io:format("light_server pid=~w.~n", [self()]),
-	Procs = [
-		?CHILD(light, worker),
+init({DevCfgFile, FuncList}) ->
+	AllProcs = [
+		{light, {light, start_link, [DevCfgFile]}, permanent, 5000, worker, [light]},
 		?CHILD(sche, worker),
 		?CHILD(remote, worker)
 		],
+	Procs = lists:filter(fun({I, _, _, _, _, _}) -> lists:member(I, FuncList) end, AllProcs),
     {ok, { {one_for_one, 5, 10}, Procs} }.
 

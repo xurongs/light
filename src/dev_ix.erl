@@ -13,10 +13,10 @@
 %% external function
 %%------------------------------------------------------------------------------
 start(Port, DevCfg) ->
-	gen_server:start(?MODULE, [{self(), Port, DevCfg}], []).
+	gen_server:start(?MODULE, {self(), Port, DevCfg}, []).
 
 start_link(Port, DevCfg) ->
-	gen_server:start_link(?MODULE, [{self(), Port, DevCfg}], []).
+	gen_server:start_link(?MODULE, {self(), Port, DevCfg}, []).
 
 stop(Dev) -> 
 	gen_server:call(Dev, stop).
@@ -33,13 +33,13 @@ status(Dev) ->
 %%------------------------------------------------------------------------------
 %% init
 %%------------------------------------------------------------------------------
-init([{Parent, Port, DevCfg}]) ->
+init({Parent, Port, DevCfg}) ->
 	process_flag(trap_exit, true),
 
-	{ok, Listen} = gen_tcp:listen(Port, [binary, {packet, 4}, {reuseaddr, true}, {acitve, true}]),
-	{ok, Socket} = gen_tcp:accept(Listen),
+	{ok, Listen} = gen_tcp:listen(Port, [binary, {packet, 4}, {reuseaddr, true}, {active, true}]),
+	self() ! {tcp_closed, undefined},
 
-	State = #state{listen = Listen, socket = Socket, parent = Parent, cfg = DevCfg},
+	State = #state{listen = Listen, parent = Parent, cfg = DevCfg},
 	{ok, State}.
 
 %%------------------------------------------------------------------------------
@@ -92,3 +92,4 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 switch_light_proc(State, Type, Id) ->
 	#state{socket = Socket} = State,
 	gen_tcp:send(Socket, term_to_binary({Type, Id})).
+

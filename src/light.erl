@@ -1,7 +1,7 @@
 -module(light).
 -behaviour(gen_server).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([start_link/0, start/0, stop/0]).
+-export([start_link/1, start/1, stop/0]).
 -export([turn_on/1, turn_off/1, status/0, register/0]).
 
 -define(SERVER, ?MODULE).
@@ -12,11 +12,11 @@
 %%------------------------------------------------------------------------------
 %% external function
 %%------------------------------------------------------------------------------
-start() ->
-	gen_server:start({local, ?SERVER}, ?MODULE, [], []).
+start(DevCfgFile) ->
+	gen_server:start({local, ?SERVER}, ?MODULE, [DevCfgFile], []).
 
-start_link() ->
-	gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+start_link(DevCfgFile) ->
+	gen_server:start_link({local, ?SERVER}, ?MODULE, [DevCfgFile], []).
 
 stop() -> 
 	gen_server:call(?SERVER, stop).
@@ -36,14 +36,13 @@ register() ->
 %%------------------------------------------------------------------------------
 %% init
 %%------------------------------------------------------------------------------
-init([]) ->
+init(DevCfgFile) ->
 	process_flag(trap_exit, true),
 
-	{ok, Cfg, _} = config:read_from_file("device.cfg", ["."]),
+	{ok, Cfg, _} = config:read_from_file(DevCfgFile, ["."]),
 	{{DevMod, DevArg}, DevCfg} = Cfg,
 
-
-	{ok, Dev} = DevMod:start_link(DevArg, DevCfg),
+	{ok, Dev} = apply(DevMod, start_link, [DevArg, DevCfg]),
 
 	State = #state{dev = Dev, key = [], light = []},
 	{ok, State}.

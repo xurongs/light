@@ -13,10 +13,10 @@
 %% external function
 %%------------------------------------------------------------------------------
 start(DevName, DevCfg) ->
-	gen_server:start(?MODULE, [{self(), DevName, DevCfg}], []).
+	gen_server:start(?MODULE, {self(), DevName, DevCfg}, []).
 
 start_link(DevName, DevCfg) ->
-	gen_server:start_link(?MODULE, [{self(), DevName, DevCfg}], []).
+	gen_server:start_link(?MODULE, {self(), DevName, DevCfg}, []).
 
 stop(Dev) -> 
 	gen_server:call(Dev, stop).
@@ -33,7 +33,7 @@ status(Dev) ->
 %%------------------------------------------------------------------------------
 %% init
 %%------------------------------------------------------------------------------
-init([{Parent, DevName, DevCfg}]) ->
+init({Parent, DevName, DevCfg}) ->
 	process_flag(trap_exit, true),
 
 	Uart = open_port({spawn, "./serial_forward "++DevName}, [stream]),
@@ -95,7 +95,7 @@ get_single_status(Status, Number) ->
 	end.
 
 convert_serial21_status(Status, DevCfg) ->
-	lists:map(fun({Num, Id}) -> {Id, get_single_status(Status, Num)} end,
+	lists:map(fun({Id, Num}) -> {Id, get_single_status(Status, Num)} end,
 		DevCfg).
 
 merge_value(V0, V1, V2) ->
@@ -113,7 +113,7 @@ type2cmd(Type) ->
 	end.
 
 id2number(DevCfg, Id) ->
-	{Number, Id} = lists:keyfind(Id, 2, DevCfg),
+	{Id, Number} = lists:keyfind(Id, 1, DevCfg),
 	Number.
 
 switch_light_proc(State, Type, Id) ->

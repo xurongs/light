@@ -1,12 +1,14 @@
 -module(light_server).
--export([start/0]).
+-export([start/0, start/1]).
 
 %% This demo assumes that all your code
 %% the code paths to ezwebframe and simple_demo are correct
 
 start() ->
+    start(8080).
+
+start(Port) ->
     application:start(light),
-    Port = 8080,
     ezwebframe:start_link(fun dispatch/1, Port).
 
 %% dispatch maps names in the HTML onto fixed paths 
