@@ -28,9 +28,12 @@ init([]) ->
 
 	light:register(),
 
-	self() ! {tcp_closed, undefined},
+	{ok, Cfg, _} = config:read_from_file("ix.cfg", ["."]),
+	{Host, Port} = Cfg,
 
-	State = #state{host = "127.0.0.1", port = 50924},
+	self() ! connect,
+
+	State = #state{host = Host, port = Port},
 	{ok, State}.
 
 %%------------------------------------------------------------------------------
@@ -56,9 +59,21 @@ handle_info({light, _Status}, State) ->
 	{noreply, State};
 
 handle_info({tcp_closed, _Socket}, State) ->
+	self() ! connect,
+	{noreply, State};
+
+handle_info(connect, State) ->
 	#state{host = Host, port = Port} = State,
-	{ok, Socket} = gen_tcp:connect(Host, Port, [binary, {packet, 4}]),
-	ok = send_light_status(Socket),
+	
+	Result = gen_tcp:connect(Host, Port, [binary, {packet, 4}]),
+	case Result of
+		{ok, Socket} ->
+			io:format("Connected to ix server ~s:~w.~n", [Host, Port]),
+			ok = send_light_status(Socket);
+		_ ->
+			{ok, _TRef} = timer:send_after(timer:seconds(5), connect),
+			Socket = undefined
+	end,
 	{noreply, #state{socket = Socket}};
 
 handle_info(_Info, State) ->
