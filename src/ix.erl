@@ -62,10 +62,16 @@ handle_info({tcp, _Socket, Bin}, State) ->
 
 handle_info({light, _Status}, State) ->
 	#state{socket = Socket} = State,
-	ok = send_light_status(Socket),
+	case Socket of
+		undefined ->
+			ignore;
+		_ ->
+			ok = send_light_status(Socket)
+	end,
 	{noreply, State};
 
 handle_info({tcp_closed, _Socket}, State) ->
+	io:format("Disconnected from the ix server.~n"),
 	self() ! connect,
 	{noreply, State};
 
@@ -75,7 +81,7 @@ handle_info(connect, State) ->
 	Result = gen_tcp:connect(Host, Port, [binary, {packet, 4}]),
 	case Result of
 		{ok, Socket} ->
-			io:format("Connected to ix server ~s:~w.~n", [Host, Port]),
+			io:format("Connected to the ix server ~s:~w.~n", [Host, Port]),
 			ok = send_light_status(Socket);
 		_ ->
 			{ok, _TRef} = timer:send_after(timer:seconds(5), connect),

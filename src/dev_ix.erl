@@ -71,6 +71,7 @@ handle_info({tcp, _Socket, Bin}, State) ->
 
 handle_info({tcp_closed, _Socket}, State) ->
 	#state{listen = Listen} = State,
+	io:format("The ix client is disconnected.~n"),
 	{ok, Socket} = gen_tcp:accept(Listen),
 	io:format("The ix client is connected.~n"),
 	{noreply, State#state{socket = Socket}};
