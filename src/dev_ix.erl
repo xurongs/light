@@ -65,17 +65,13 @@ handle_cast(_Msg, State) -> {noreply, State}.
 %%------------------------------------------------------------------------------
 handle_info({tcp, _Socket, Bin}, State) ->
 	#state{parent = Parent} = State,
-	Recv = binary_to_term(Bin),
-	io:format("recv ~w~n", [Recv]),
-	{status, Status} = Recv,
+	{status, Status} = binary_to_term(Bin),
 	Parent ! Status,
 	{noreply, State};
 
 handle_info({tcp_closed, _Socket}, State) ->
 	#state{listen = Listen} = State,
-	io:format("waiting device....~n"),
 	{ok, Socket} = gen_tcp:accept(Listen),
-	io:format("hello, device.~n"),
 	{noreply, State#state{socket = Socket}};
 
 handle_info(_Info, State) -> {noreply, State}.

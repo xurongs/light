@@ -49,8 +49,15 @@ handle_cast(_Msg, State) -> {noreply, State}.
 %%------------------------------------------------------------------------------
 %% handle_info
 %%------------------------------------------------------------------------------
-handle_info({tcp, _Socket, _Bin}, State) ->
-
+handle_info({tcp, _Socket, Bin}, State) ->
+	case binary_to_term(Bin) of
+		{on, Id} ->
+			light:turn_on(Id);
+		{off, Id} ->
+			light:turn_off(Id);
+		_ ->
+			undefined
+	end,
 	{noreply, State};
 
 handle_info({light, _Status}, State) ->
