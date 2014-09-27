@@ -1,6 +1,5 @@
 all: light serial_forward
 	@-pkill -f light_server:start
-	
 	@erl \
 		-app_cfg app_extern.cfg \
 		-detached \
@@ -11,6 +10,26 @@ all: light serial_forward
 		-pa ebin \
 		-eval 'light_server:start(8082).'
 		
+	@erl \
+		-app_cfg app_local.cfg \
+		-pa deps/cowboy/ebin \
+		-pa deps/cowlib/ebin \
+		-pa deps/ezwebframe/ebin \
+		-pa deps/ranch/ebin \
+		-pa ebin \
+		-eval 'light_server:start(8081).'
+
+lauch_remote:
+	@erl \
+		-app_cfg app_extern.cfg \
+		-pa deps/cowboy/ebin \
+		-pa deps/cowlib/ebin \
+		-pa deps/ezwebframe/ebin \
+		-pa deps/ranch/ebin \
+		-pa ebin \
+		-eval 'light_server:start(8082).'
+		
+lauch_local:
 	@erl \
 		-app_cfg app_local.cfg \
 		-pa deps/cowboy/ebin \
