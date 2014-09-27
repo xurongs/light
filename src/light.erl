@@ -3,6 +3,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([start_link/1, start/1, stop/0]).
 -export([turn_on/1, turn_off/1, status/0, register/0]).
+-export([diag/1]).
 
 -define(SERVER, ?MODULE).
 
@@ -28,10 +29,14 @@ turn_off(Id) ->
 	gen_server:call(?SERVER, {off, Id}).
 
 status() ->
-	gen_server:call(?SERVER, {status}).	
+	gen_server:call(?SERVER, {status}).
 
 register() ->
-	gen_server:call(?SERVER, {register}).	
+	gen_server:call(?SERVER, {register}).
+
+diag(Target) ->
+	gen_server:call(?SERVER, {diag, Target}).
+
 
 %%------------------------------------------------------------------------------
 %% init
@@ -76,6 +81,13 @@ handle_call({off, Id}, From, State) ->
 handle_call({status}, _, State) ->
 	#state{light = Light} = State,
 	{reply, {ok, {status, {light, Light}}}, State, 1000};
+
+handle_call({diag, Target}, _, State) ->
+	Result = case Target of
+		state -> State;
+		_ -> unknown
+	end,
+	{reply, Result, State, 1000};
 
 handle_call(stop, _From, State) -> {stop, normal, stopped, State}.
 

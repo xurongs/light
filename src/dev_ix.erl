@@ -4,6 +4,7 @@
 -export([start_link/2, start/2, stop/1]).
 -export([turn_on/2, turn_off/2, status/1]).
 -export([listen_and_accept_proc/2]).
+-export([diag/2]).
 
 -define(SERVER, ?MODULE).
 
@@ -31,6 +32,9 @@ turn_off(Dev, Id) ->
 status(Dev) ->
 	gen_server:cast(Dev, {status}).
 
+diag(Dev, Target) ->
+	gen_server:call(Dev, {diag, Target}).
+
 %%------------------------------------------------------------------------------
 %% init
 %%------------------------------------------------------------------------------
@@ -45,6 +49,13 @@ init({Parent, Port, DevCfg}) ->
 %%------------------------------------------------------------------------------
 %% handle_call
 %%------------------------------------------------------------------------------
+handle_call({diag, Target}, _, State) ->
+	Result = case Target of
+		state -> State;
+		_ -> unknown
+	end,
+	{reply, Result, State, 1000};
+	
 handle_call(stop, _From, State) -> {stop, normal, stopped, State}.
 
 %%------------------------------------------------------------------------------
