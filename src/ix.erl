@@ -32,6 +32,7 @@ init([]) ->
 	{Host, Port} = Cfg,
 
 	self() ! connect,
+	timer:send_interval(timer:seconds(60), sync),
 
 	State = #state{host = Host, port = Port},
 	{ok, State}.
@@ -61,6 +62,15 @@ handle_info({tcp, _Socket, Bin}, State) ->
 	{noreply, State};
 
 handle_info({light, _Status}, State) ->
+	self() ! sync,
+	{noreply, State};
+
+handle_info({tcp_closed, _Socket}, State) ->
+	io:format("Disconnected from the ix server.~n"),
+	self() ! connect,
+	{noreply, State};
+
+handle_info(sync, State) ->
 	#state{socket = Socket} = State,
 	case Socket of
 		undefined ->
@@ -68,11 +78,6 @@ handle_info({light, _Status}, State) ->
 		_ ->
 			ok = send_light_status(Socket)
 	end,
-	{noreply, State};
-
-handle_info({tcp_closed, _Socket}, State) ->
-	io:format("Disconnected from the ix server.~n"),
-	self() ! connect,
 	{noreply, State};
 
 handle_info(connect, State) ->
