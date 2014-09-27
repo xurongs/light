@@ -87,7 +87,7 @@ handle_info(connect, State) ->
 			{ok, _TRef} = timer:send_after(timer:seconds(5), connect),
 			Socket = undefined
 	end,
-	{noreply, #state{socket = Socket}};
+	{noreply, State#state{socket = Socket}};
 
 handle_info(_Info, State) ->
 	{noreply, State}.
