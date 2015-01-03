@@ -42,8 +42,6 @@ diag(Target) ->
 %% init
 %%------------------------------------------------------------------------------
 init(DevCfgFile) ->
-	process_flag(trap_exit, true),
-
 	{ok, Cfg, _} = config:read_from_file(DevCfgFile, ["."]),
 	{{DevMod, DevArg}, DevCfg} = Cfg,
 

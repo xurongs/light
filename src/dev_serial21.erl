@@ -3,10 +3,11 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([start_link/2, start/2, stop/1]).
 -export([turn_on/2, turn_off/2, status/1]).
+-export([diag/2]).
 
 -define(SERVER, ?MODULE).
 
--record(state, {uart, parent, cfg}).
+-record(state, {uart, parent, cfg, stat}).
 
 
 %%------------------------------------------------------------------------------
@@ -30,6 +31,9 @@ turn_off(Dev, Id) ->
 status(Dev) ->
 	gen_server:cast(Dev, {status}).
 
+diag(Dev, Target) ->
+	gen_server:call(Dev, {diag, Target}).
+
 %%------------------------------------------------------------------------------
 %% init
 %%------------------------------------------------------------------------------
@@ -39,24 +43,31 @@ init({Parent, DevName, DevCfg}) ->
 	Uart = open_port({spawn, "./serial_forward "++DevName}, [stream]),
 	link(Uart),
 	activate_uart(Uart),
-	State = #state{uart = Uart, parent = Parent, cfg = DevCfg},
+	State = #state{uart = Uart, parent = Parent, cfg = DevCfg, stat = {{rx, 0}, {tx, 0}}},
 	{ok, State}.
 
 %%------------------------------------------------------------------------------
 %% handle_call
 %%------------------------------------------------------------------------------
+handle_call({diag, Target}, _, State) ->
+	Result = case Target of
+		state -> State;
+		_ -> unknown
+	end,
+	{reply, Result, State, 1000};
+
 handle_call(stop, _From, State) -> {stop, normal, stopped, State}.
 
 %%------------------------------------------------------------------------------
 %% handle_cast
 %%------------------------------------------------------------------------------
 handle_cast({off, Id}, State) ->
-	switch_light_proc(State, off, Id), 
-	{noreply, State};
+	NewState = switch_light_proc(State, off, Id), 
+	{noreply, NewState};
 
 handle_cast({on, Id}, State) -> 
-	switch_light_proc(State, on, Id), 
-	{noreply, State};
+	NewState = switch_light_proc(State, on, Id), 
+	{noreply, NewState};
 
 handle_cast(_Msg, State) -> {noreply, State}.
 
@@ -64,9 +75,9 @@ handle_cast(_Msg, State) -> {noreply, State}.
 %% handle_info
 %%------------------------------------------------------------------------------
 handle_info({_Uart, {data, Data}}, State) ->
-	#state{parent = Parent, cfg = DevCfg} = State,
+	#state{parent = Parent, cfg = DevCfg, stat = {{rx, Rx}, Tx}} = State,
 	Parent ! {light, get_light_status(Data, DevCfg)},
-	{noreply, State};
+	{noreply, State#state{stat = {{rx, Rx + 1}, Tx}}};
 
 handle_info(_Info, State) -> {noreply, State}.
 
@@ -117,8 +128,9 @@ id2number(DevCfg, Id) ->
 	Number.
 
 switch_light_proc(State, Type, Id) ->
-	#state{uart = Uart, cfg = DevCfg} = State,
-	switch_light(Uart, type2cmd(Type), id2number(DevCfg, Id)).
+	#state{uart = Uart, cfg = DevCfg, stat = {Rx, {tx, Tx}}} = State,
+	switch_light(Uart, type2cmd(Type), id2number(DevCfg, Id)),
+	State#state{stat = {Rx, {tx, Tx + 1}}}.
 
 
 switch_light(Uart, Cmd, Num) ->
