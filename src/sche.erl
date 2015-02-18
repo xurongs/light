@@ -96,7 +96,7 @@ all_light_status() ->
 	Light.
 
 turn_on_a_while(Number, Seconds, Task) ->
-	Key = {Number, on},
+	Key = {Number, off},
 	case light_status_2(Number, all_light_status()) of
 		on ->
 			case dict:is_key(Key, Task) of
