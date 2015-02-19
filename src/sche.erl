@@ -28,7 +28,6 @@ turn_on(Number, Seconds) ->
 %% init
 %%------------------------------------------------------------------------------
 init([]) ->
-	process_flag(trap_exit, true),
 	light:register(),
 	{ok, #state{}}.
 
@@ -96,7 +95,7 @@ all_light_status() ->
 	Light.
 
 turn_on_a_while(Number, Seconds, Task) ->
-	Key = {Number, off},
+	Key = {Number, on},
 	case light_status_2(Number, all_light_status()) of
 		on ->
 			case dict:is_key(Key, Task) of
