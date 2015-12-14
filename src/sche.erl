@@ -3,6 +3,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([start_link/0, start/0, stop/0]).
 -export([turn_on/2]).
+-export([diag/1]).
 
 -define(SERVER, ?MODULE).
 
@@ -24,6 +25,9 @@ stop() ->
 turn_on(Number, Seconds) ->
 	gen_server:call(?MODULE, {{on, Number}, Seconds}).
 
+diag(Target) ->
+	gen_server:call(?SERVER, {diag, Target}).
+
 %%------------------------------------------------------------------------------
 %% init
 %%------------------------------------------------------------------------------
@@ -38,6 +42,13 @@ handle_call({{on, Number}, Seconds}, _From, State) ->
 	#state{task = Task} = State,
 	{Result, NewTask} = turn_on_a_while(Number, Seconds, Task),
 	{reply, Result, State#state{task = NewTask}};
+
+handle_call({diag, Target}, _, State) ->
+	Result = case Target of
+		state -> State;
+		_ -> unknown
+	end,
+	{reply, Result, State};
 
 handle_call(stop, _From, State) -> {stop, normal, stopped, State}.
 

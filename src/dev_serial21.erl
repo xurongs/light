@@ -38,8 +38,6 @@ diag(Dev, Target) ->
 %% init
 %%------------------------------------------------------------------------------
 init({Parent, DevName, DevCfg}) ->
-	process_flag(trap_exit, true),
-
 	Uart = open_port({spawn, "./serial_forward "++DevName}, [stream]),
 	link(Uart),
 	activate_uart(Uart),

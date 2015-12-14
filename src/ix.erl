@@ -24,8 +24,6 @@ stop() ->
 %% init
 %%------------------------------------------------------------------------------
 init([]) ->
-	process_flag(trap_exit, true),
-
 	light:register(),
 
 	{ok, Cfg, _} = config:read_from_file("ix.cfg", ["."]),

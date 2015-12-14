@@ -39,8 +39,6 @@ diag(Dev, Target) ->
 %% init
 %%------------------------------------------------------------------------------
 init({Parent, Port, DevCfg}) ->
-	process_flag(trap_exit, true),
-
 	self() ! listen,
 
 	State = #state{port = Port, parent = Parent, cfg = DevCfg},

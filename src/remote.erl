@@ -34,7 +34,6 @@ manual(SCode) ->
 %% init
 %%------------------------------------------------------------------------------
 init([]) ->
-	process_flag(trap_exit, true),
 	Uart = open_port({spawn, "./serial_forward /dev/ttySAC1"}, [stream]),
 	link(Uart),
 	Device = load_dev(),
